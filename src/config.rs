@@ -1,13 +1,28 @@
-pub struct DbConfig {
-    pub source_url: String,
-    pub target_url: String,
+use serde::Deserialize;
+use std::fs;
+
+#[derive(Deserialize)]
+pub struct DatabaseConfig {
+    pub r#type: String, // `type` is a reserved keyword, so we use `r#type`
+    pub url: String,
 }
 
-impl DbConfig {
-    pub fn new() -> Self {
-        Self {
-            source_url: std::env::var("SOURCE_DB_URL").expect("SOURCE_DB_URL not set"),
-            target_url: std::env::var("TARGET_DB_URL").expect("TARGET_DB_URL not set"),
-        }
+#[derive(Deserialize)]
+pub struct AppConfig {
+    pub databases: Databases,
+}
+
+#[derive(Deserialize)]
+pub struct Databases {
+    pub source: DatabaseConfig,
+    pub target: DatabaseConfig,
+}
+
+impl AppConfig {
+    pub fn from_file(file_path: &str) -> Self {
+        let config_content = fs::read_to_string(file_path)
+            .expect("Failed to read configuration file");
+        toml::from_str(&config_content)
+            .expect("Failed to parse configuration file")
     }
 }
