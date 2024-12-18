@@ -3,7 +3,7 @@ use std::fs;
 
 #[derive(Deserialize)]
 pub struct DatabaseConfig {
-    pub r#type: String, // `type` is a reserved keyword, so we use `r#type`
+    pub r#type: String,
     pub url: String,
 }
 

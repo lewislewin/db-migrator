@@ -7,9 +7,23 @@ use config::AppConfig;
 use db_connector::{connect_to_database, DbPool};
 use schema_manager::{DatabaseHandler, MySqlHandler, PostgresHandler};
 use data_migrator::copy_table_data;
+use clap::Parser;
+
+/// Command-line arguments parser
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Table name to be migrated
+    #[arg(short, long)]
+    table: String,
+}
 
 #[tokio::main]
 async fn main() {
+    // Parse command-line arguments
+    let args = Args::parse();
+    let table_name = args.table;
+
     // Load configuration from the config file
     let config = AppConfig::from_file("config.toml");
 
@@ -26,8 +40,6 @@ async fn main() {
     )
     .await;
 
-    let table_name = "example_table"; // Replace with your actual table name
-
     // Dynamically determine database type and execute migration
     match (source_pool, target_pool) {
         (DbPool::Postgres(source), DbPool::Postgres(target)) => {
@@ -35,20 +47,20 @@ async fn main() {
             let target_handler = PostgresHandler { pool: target };
 
             println!("Ensuring table exists in target database...");
-            target_handler.ensure_table_exists(table_name).await;
+            target_handler.ensure_table_exists(&table_name).await;
 
             println!("Copying data from source to target...");
-            copy_table_data(&source_handler, &target_handler, table_name).await;
+            copy_table_data(&source_handler, &target_handler, &table_name).await;
         }
         (DbPool::MySql(source), DbPool::MySql(target)) => {
             let source_handler = MySqlHandler { pool: source };
             let target_handler = MySqlHandler { pool: target };
 
             println!("Ensuring table exists in target database...");
-            target_handler.ensure_table_exists(table_name).await;
+            target_handler.ensure_table_exists(&table_name).await;
 
             println!("Copying data from source to target...");
-            copy_table_data(&source_handler, &target_handler, table_name).await;
+            copy_table_data(&source_handler, &target_handler, &table_name).await;
         }
         _ => panic!("Source and target databases must be of the same type"),
     }
