@@ -5,15 +5,15 @@ mod data_migrator;
 
 use config::AppConfig;
 use db_connector::{connect_to_database, DbPool};
-use schema_manager::{ensure_table_exists, ensure_table_exists_mysql};
-use data_migrator::{copy_table_data, copy_table_data_mysql};
+use schema_manager::{DatabaseHandler, MySqlHandler, PostgresHandler};
+use data_migrator::copy_table_data;
 
 #[tokio::main]
 async fn main() {
-    // Load the configuration from the config file
+    // Load configuration from the config file
     let config = AppConfig::from_file("config.toml");
 
-    // Connect to the source and target databases
+    // Connect to source and target databases
     let source_pool = connect_to_database(
         &config.databases.source.r#type,
         &config.databases.source.url,
@@ -26,23 +26,29 @@ async fn main() {
     )
     .await;
 
-    // Ensure the connection pools are for the same type of database
+    let table_name = "example_table"; // Replace with your actual table name
+
+    // Dynamically determine database type and execute migration
     match (source_pool, target_pool) {
         (DbPool::Postgres(source), DbPool::Postgres(target)) => {
-            let table_name = "example_table"; // Replace with the actual table name
+            let source_handler = PostgresHandler { pool: source };
+            let target_handler = PostgresHandler { pool: target };
 
-            ensure_table_exists(&source, &target, table_name).await;
+            println!("Ensuring table exists in target database...");
+            target_handler.ensure_table_exists(table_name).await;
 
-            println!("Copying data...");
-            copy_table_data(&source, &target, table_name).await;
+            println!("Copying data from source to target...");
+            copy_table_data(&source_handler, &target_handler, table_name).await;
         }
         (DbPool::MySql(source), DbPool::MySql(target)) => {
-            let table_name = "example_table"; // Replace with the actual table name
+            let source_handler = MySqlHandler { pool: source };
+            let target_handler = MySqlHandler { pool: target };
 
-            ensure_table_exists_mysql(&source, &target, table_name).await;
+            println!("Ensuring table exists in target database...");
+            target_handler.ensure_table_exists(table_name).await;
 
-            println!("Copying data...");
-            copy_table_data_mysql(&source, &target, table_name).await;
+            println!("Copying data from source to target...");
+            copy_table_data(&source_handler, &target_handler, table_name).await;
         }
         _ => panic!("Source and target databases must be of the same type"),
     }
