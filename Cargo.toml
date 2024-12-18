@@ -1,0 +1,10 @@
+[package]
+name = "db_migrator"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+sqlx = { version = "0.6", features = ["postgres", "runtime-tokio-native-tls"] }
+dotenv = "0.15"
+futures-util = "0.3"
